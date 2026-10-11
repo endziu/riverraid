@@ -1,35 +1,89 @@
-import { SPEED_FAST, SPEED_SLOW, type Game } from '../game/game';
+import type { Game } from '../game/game';
+import { LOW_FUEL } from '../game/tuning';
 
-/** DOM overlay: distance, speed and centre-screen messages. */
+const HI_SCORE_KEY = 'river.hiscore';
+
+/** DOM overlay: score, sector, lives, fuel gauge and centre-screen messages. */
 export class Hud {
-  private readonly distance: HTMLElement;
-  private readonly speedFill: HTMLElement;
+  private readonly score: HTMLElement;
+  private readonly hiScore: HTMLElement;
+  private readonly sector: HTMLElement;
+  private readonly lives: HTMLElement;
+  private readonly fuelBox: HTMLElement;
+  private readonly fuelFill: HTMLElement;
   private readonly message: HTMLElement;
+  private readonly sub: HTMLElement;
+  private hi = Number(localStorage.getItem(HI_SCORE_KEY)) || 0;
+  private shownLives = -1;
 
   constructor(root: HTMLElement) {
     root.innerHTML = `
       <div class="hud-top">
-        <div class="hud-stat"><span class="label">DIST</span><span class="value" data-distance>0</span></div>
-        <div class="hud-stat"><span class="label">SPEED</span><div class="bar"><div class="bar-fill" data-speed></div></div></div>
+        <div class="hud-stat"><span class="label">SCORE</span><span class="value" data-score></span></div>
+        <div class="hud-stat"><span class="label">SECTOR</span><span class="value" data-sector></span></div>
+        <div class="hud-stat"><span class="label">HI</span><span class="value dim" data-hi></span></div>
+        <div class="hud-stat"><span class="lives" data-lives></span></div>
       </div>
-      <div class="hud-message" data-message></div>
+      <div class="hud-fuel" data-fuel-box>
+        <span class="label">E</span>
+        <div class="fuel-bar"><div class="fuel-fill" data-fuel></div><div class="fuel-tick"></div></div>
+        <span class="label">F</span>
+      </div>
+      <div class="hud-center">
+        <div class="hud-message" data-message></div>
+        <div class="hud-sub" data-sub></div>
+      </div>
     `;
-    this.distance = root.querySelector('[data-distance]')!;
-    this.speedFill = root.querySelector('[data-speed]')!;
-    this.message = root.querySelector('[data-message]')!;
+    const q = (sel: string) => root.querySelector<HTMLElement>(sel)!;
+    this.score = q('[data-score]');
+    this.hiScore = q('[data-hi]');
+    this.sector = q('[data-sector]');
+    this.lives = q('[data-lives]');
+    this.fuelBox = q('[data-fuel-box]');
+    this.fuelFill = q('[data-fuel]');
+    this.message = q('[data-message]');
+    this.sub = q('[data-sub]');
   }
 
   update(game: Game): void {
-    this.distance.textContent = String(Math.floor(game.y)).padStart(6, '0');
-    const speed = (game.speed - SPEED_SLOW) / (SPEED_FAST - SPEED_SLOW);
-    this.speedFill.style.transform = `scaleX(${0.08 + speed * 0.92})`;
+    if (game.score > this.hi) {
+      this.hi = game.score;
+      localStorage.setItem(HI_SCORE_KEY, String(this.hi));
+    }
+    setText(this.score, String(game.score).padStart(6, '0'));
+    setText(this.hiScore, String(this.hi).padStart(6, '0'));
+    setText(this.sector, String(game.sector + 1).padStart(2, '0'));
 
-    const text =
-      game.phase === 'ready'
-        ? 'PRESS SPACE TO LAUNCH'
-        : game.phase === 'crashed'
-          ? 'SIGNAL LOST — PRESS SPACE'
-          : '';
-    if (this.message.textContent !== text) this.message.textContent = text;
+    if (game.lives !== this.shownLives) {
+      this.shownLives = game.lives;
+      this.lives.innerHTML = '<i></i>'.repeat(Math.max(game.lives, 0));
+    }
+
+    this.fuelFill.style.transform = `scaleX(${game.fuel})`;
+    this.fuelBox.classList.toggle('low', game.fuel < LOW_FUEL && game.phase === 'playing');
+    this.fuelBox.classList.toggle('refuel', game.refueling);
+
+    const [message, sub] = messages(game);
+    setText(this.message, message);
+    setText(this.sub, sub);
   }
+}
+
+function messages(game: Game): [string, string] {
+  switch (game.phase) {
+    case 'ready':
+      return game.score === 0 && game.checkpoint === 0
+        ? ['PRESS SPACE TO LAUNCH', 'ARROWS / WASD TO FLY · SPACE TO FIRE']
+        : ['PRESS SPACE TO CONTINUE', `${game.lives} ${game.lives === 1 ? 'LIFE' : 'LIVES'} LEFT`];
+    case 'crashed':
+      return ['SIGNAL LOST', ''];
+    case 'gameover':
+      return ['GAME OVER', `FINAL SCORE ${game.score} · PRESS SPACE`];
+    case 'playing':
+      return ['', ''];
+  }
+}
+
+function setText(el: HTMLElement, text: string): void {
+  if (el.textContent !== text) el.textContent = text;
 }

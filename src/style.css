@@ -56,31 +56,89 @@ body {
   letter-spacing: 0.12em;
 }
 
-.bar {
-  width: 140px;
-  height: 6px;
+.value.dim {
+  opacity: 0.6;
+}
+
+.lives {
+  display: flex;
+  gap: 8px;
+}
+
+.lives i {
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 16px solid var(--neon);
+  filter: drop-shadow(0 0 6px var(--neon));
+}
+
+.hud-fuel {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  --fuel: #64ff8a;
+}
+
+.fuel-bar {
+  position: relative;
+  width: 280px;
+  height: 10px;
   border: 1px solid var(--neon-dim);
   box-shadow: 0 0 8px var(--neon-dim);
 }
 
-.bar-fill {
+.fuel-fill {
   height: 100%;
-  background: var(--neon);
-  box-shadow: 0 0 10px var(--neon);
+  background: var(--fuel);
+  box-shadow: 0 0 12px var(--fuel);
   transform-origin: left;
-  transition: transform 80ms linear;
 }
 
-.hud-message {
+/* Marks the low-fuel threshold. */
+.fuel-tick {
+  position: absolute;
+  left: 25%;
+  top: -4px;
+  bottom: -4px;
+  width: 1px;
+  background: var(--neon-dim);
+}
+
+.hud-fuel.low {
+  --fuel: #ff5a1f;
+  animation: pulse 0.5s ease-in-out infinite;
+}
+
+.hud-fuel.refuel .fuel-fill {
+  box-shadow: 0 0 22px var(--fuel), 0 0 4px #fff;
+}
+
+.hud-center {
   position: absolute;
   left: 0;
   right: 0;
-  top: 42%;
+  top: 40%;
   text-align: center;
-  font-size: 20px;
-  font-weight: 500;
+}
+
+.hud-message {
+  font-size: 22px;
+  font-weight: 700;
   letter-spacing: 0.35em;
   animation: pulse 1.6s ease-in-out infinite;
+}
+
+.hud-sub {
+  margin-top: 14px;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  opacity: 0.7;
 }
 
 @keyframes pulse {

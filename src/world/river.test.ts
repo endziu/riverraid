@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MIN_CHANNEL, River } from './river';
+import { BRIDGE_HALF_WIDTH, MIN_CHANNEL, River, SECTION_LEN } from './river';
 
 describe('River', () => {
   it('is deterministic for a seed', () => {
@@ -35,5 +35,16 @@ describe('River', () => {
     const s = river.sample(0);
     expect(river.isWater(s.center + s.halfWidth + 1, 0)).toBe(false);
     expect(river.isWater(s.center - s.halfWidth - 1, 0)).toBe(false);
+  });
+});
+
+describe('River bridges', () => {
+  it('pinches to a single narrow channel at every bridge', () => {
+    const river = new River(1982);
+    for (let k = 1; k < 20; k++) {
+      const s = river.sample(k * SECTION_LEN);
+      expect(s.halfWidth).toBeCloseTo(BRIDGE_HALF_WIDTH, 5);
+      expect(s.islandHalf).toBe(0);
+    }
   });
 });

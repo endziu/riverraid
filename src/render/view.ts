@@ -4,8 +4,10 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import type { Game, GameEvent } from '../game/game';
-import { Explosion } from './explosion';
+import { EntityView } from './entities';
+import { Explosions } from './explosion';
 import { waterMaterial, worldUniforms } from './materials';
+import { ALTITUDE, COLORS, KIND_COLOR } from './models';
 import { SHIP_ALTITUDE, Ship } from './ship';
 import { Terrain } from './terrain';
 
@@ -15,6 +17,7 @@ const CAM_BACK = 30;
 const CAM_LOOK_AHEAD = 20;
 /** How much the camera follows the player sideways (0 = fixed, 1 = locked). */
 const CAM_FOLLOW_X = 0.6;
+const BACKGROUND = new THREE.Color(0, 0, 0.004);
 
 /** Owns the Three.js scene and draws the current game state. */
 export class View {
@@ -26,18 +29,21 @@ export class View {
   private readonly terrain: Terrain;
   private readonly water: THREE.Mesh;
   private readonly ship = new Ship();
-  private readonly explosion = new Explosion(new THREE.Vector3(1.2, 2.2, 3.0));
+  private readonly entities = new EntityView();
+  private readonly explosions = new Explosions();
   private camX = 0;
   private shake = 0;
 
   constructor(canvas: HTMLCanvasElement, game: Game) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
     this.renderer.toneMapping = THREE.NoToneMapping;
-    this.scene.background = new THREE.Color(0, 0, 0.004);
+    this.scene.background = BACKGROUND;
+    // Matches the terrain shaders' distance fade so standard materials fade out too.
+    this.scene.fog = new THREE.Fog(BACKGROUND, worldUniforms.uFadeNear.value, worldUniforms.uFadeFar.value);
 
     this.terrain = new Terrain(game.river);
     this.water = new THREE.Mesh(new THREE.PlaneGeometry(800, 800).rotateX(-Math.PI / 2), waterMaterial);
-    this.scene.add(this.terrain.group, this.water, this.ship.group, this.explosion.points);
+    this.scene.add(this.terrain.group, this.water, this.ship.group, this.entities.group, this.explosions.group);
     this.ship.trails.forEach((t) => this.scene.add(t.mesh));
 
     this.composer = new EffectComposer(this.renderer);
@@ -51,24 +57,17 @@ export class View {
   }
 
   render(game: Game, alpha: number, dt: number, events: GameEvent[]): void {
-    for (const e of events) {
-      if (e.type === 'crash') {
-        this.explosion.spawn(new THREE.Vector3(e.x, SHIP_ALTITUDE, -e.y));
-        this.shake = 1;
-        this.ship.reset();
-      } else if (e.type === 'reset') {
-        this.ship.reset();
-      }
-    }
+    for (const e of events) this.handle(e);
 
     const x = game.prevX + (game.x - game.prevX) * alpha;
     const y = game.prevY + (game.y - game.prevY) * alpha;
 
     worldUniforms.uTime.value += dt;
     this.terrain.update(y);
-    this.ship.group.visible = game.phase !== 'crashed';
+    this.ship.group.visible = game.phase === 'ready' || game.phase === 'playing';
     if (this.ship.group.visible) this.ship.update(x, y, game.bank);
-    this.explosion.update(dt);
+    this.entities.sync(game, alpha, worldUniforms.uTime.value);
+    this.explosions.update(dt);
 
     this.camX += (x * CAM_FOLLOW_X - this.camX) * (1 - Math.exp(-dt * 4));
     this.shake *= Math.exp(-dt * 5);
@@ -81,6 +80,28 @@ export class View {
     this.composer.render(dt);
   }
 
+  private handle(e: GameEvent): void {
+    switch (e.type) {
+      case 'crash':
+        this.explosions.spawn(new THREE.Vector3(e.x, SHIP_ALTITUDE, -e.y), COLORS.player, 1.4);
+        this.shake = 1;
+        this.ship.reset();
+        break;
+      case 'destroyed': {
+        const big = e.kind === 'bridge';
+        this.explosions.spawn(new THREE.Vector3(e.x, ALTITUDE[e.kind] + 1, -e.y), KIND_COLOR[e.kind], big ? 1.6 : 1);
+        this.shake = Math.max(this.shake, big ? 0.6 : 0.15);
+        break;
+      }
+      case 'impact':
+        this.explosions.spawn(new THREE.Vector3(e.x, SHIP_ALTITUDE, -e.y), COLORS.player, 0.2);
+        break;
+      case 'respawn':
+        this.ship.reset();
+        break;
+    }
+  }
+
   private resize(): void {
     const w = window.innerWidth;
     const h = window.innerHeight;
@@ -91,6 +112,6 @@ export class View {
     this.composer.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.explosion.setScale((h * dpr) / (2 * Math.tan(THREE.MathUtils.degToRad(FOV / 2))));
+    this.explosions.setScale((h * dpr) / (2 * Math.tan(THREE.MathUtils.degToRad(FOV / 2))));
   }
 }

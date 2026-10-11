@@ -81,3 +81,35 @@ export function glowMaterial(color: THREE.Vector3) {
 
 export const bankEdgeMaterial = glowMaterial(new THREE.Vector3(0.3, 0.8, 1.0).multiplyScalar(1.7));
 export const waterlineMaterial = glowMaterial(new THREE.Vector3(0.0, 0.5, 1.0).multiplyScalar(1.1));
+
+export const roadMaterial = glowMaterial(new THREE.Vector3(1.0, 0.62, 0.12).multiplyScalar(0.8));
+
+/** Translucent energy wall stretched across a bridge. */
+export const barrierMaterial = new THREE.ShaderMaterial({
+  uniforms: { ...worldUniforms, uColor: { value: new THREE.Vector3(1.0, 0.55, 0.1) } },
+  vertexShader: /* glsl */ `
+    varying vec3 vWorld;
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      vec4 w = modelMatrix * vec4(position, 1.0);
+      vWorld = w.xyz;
+      gl_Position = projectionMatrix * viewMatrix * w;
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    ${common}
+    uniform vec3 uColor;
+    varying vec2 vUv;
+    void main() {
+      float scan = pow(0.5 + 0.5 * sin(vUv.y * 40.0 - uTime * 5.0), 6.0);
+      float rim = smoothstep(0.85, 1.0, vUv.y) + smoothstep(0.08, 0.0, vUv.y);
+      float a = 0.06 + 0.18 * scan + 0.5 * rim;
+      gl_FragColor = vec4(uColor * a * distFade(), 1.0);
+    }
+  `,
+  transparent: true,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  side: THREE.DoubleSide,
+});

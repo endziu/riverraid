@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { BANK_HEIGHT, River, type RiverSlice } from '../world/river';
-import { bankEdgeMaterial, landTopMaterial, wallMaterial, waterlineMaterial } from './materials';
+import { BANK_HEIGHT, River, SECTION_LEN, type RiverSlice } from '../world/river';
+import { bankEdgeMaterial, landTopMaterial, roadMaterial, wallMaterial, waterlineMaterial } from './materials';
 
 const CHUNK_LEN = 64;
 const ROW_STEP = 2;
@@ -10,6 +10,8 @@ const BEHIND = 80;
 const AHEAD = 260;
 const EDGE_WIDTH = 0.3;
 const WATERLINE_HEIGHT = 0.35;
+const ROAD_HALF_WIDTH = 1.6;
+const ROAD_LINE = 0.25;
 
 type Vec3 = readonly [number, number, number];
 
@@ -88,12 +90,30 @@ function buildChunk(river: River, index: number): THREE.Group {
   waterline.add(ROWS, (i) => [IL(rows[i]) - lift, 0, rows[i].z], (i) => [IL(rows[i]) - lift, wl(rows[i]), rows[i].z]);
   waterline.add(ROWS, (i) => [IR(rows[i]) + lift, 0, rows[i].z], (i) => [IR(rows[i]) + lift, wl(rows[i]), rows[i].z]);
 
+  // Glowing road lines leading to each bridge.
+  const roads = new StripBuilder();
+  const y0 = index * CHUNK_LEN;
+  for (let by = Math.ceil(y0 / SECTION_LEN) * SECTION_LEN; by < y0 + CHUNK_LEN; by += SECTION_LEN) {
+    if (by === 0) continue;
+    const s = river.sample(by);
+    const spans: [number, number][] = [
+      [-LAND_OUTER, s.center - s.halfWidth],
+      [s.center + s.halfWidth, LAND_OUTER],
+    ];
+    for (const z of [-by - ROAD_HALF_WIDTH, -by + ROAD_HALF_WIDTH]) {
+      for (const span of spans) {
+        roads.add(2, (i) => [span[i], H + lift, z], (i) => [span[i], H + lift, z - ROAD_LINE]);
+      }
+    }
+  }
+
   const group = new THREE.Group();
   group.add(
     new THREE.Mesh(top.build(), landTopMaterial),
     new THREE.Mesh(walls.build(), wallMaterial),
     new THREE.Mesh(edges.build(), bankEdgeMaterial),
     new THREE.Mesh(waterline.build(), waterlineMaterial),
+    new THREE.Mesh(roads.build(), roadMaterial),
   );
   return group;
 }

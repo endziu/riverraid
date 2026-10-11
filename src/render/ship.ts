@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Trail } from './trail';
 
-export const SHIP_ALTITUDE = 6;
+export const SHIP_ALTITUDE = 4.5;
 
 const HULL_COLOR = new THREE.Color(0.01, 0.015, 0.025);
 const EDGE_COLOR = new THREE.Color(2.2, 2.3, 2.6);

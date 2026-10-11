@@ -13,6 +13,14 @@ export interface RiverSlice {
 export const BANK_HEIGHT = 3;
 /** Narrowest a navigable channel may get (full width). */
 export const MIN_CHANNEL = 7;
+/** Length of one sector; each sector ends in a bridge at a multiple of this. */
+export const SECTION_LEN = 700;
+/** The river pinches to this half-width at every bridge. */
+export const BRIDGE_HALF_WIDTH = 11;
+
+const BRIDGE_NECK = 70;
+/** Distance over which the river narrows to its hardest width. */
+const NARROWING_LEN = 12 * SECTION_LEN;
 
 const START_STRAIGHT = 120;
 const START_BLEND = 220;
@@ -40,8 +48,13 @@ export class River {
     const center = 34 * fbm(this.seed, y / 260, 2) * t;
 
     const n = fbm(this.seed + 77, y / 150, 3);
-    const generated = smoothMin(smoothMax(19 + 26 * n, MIN_CHANNEL + 1, 16), 38, 16);
-    const halfWidth = START_HALF_WIDTH + (generated - START_HALF_WIDTH) * t;
+    const narrowing = 1 - 0.3 * smoothstep(0, NARROWING_LEN, y);
+    const generated = smoothMin(smoothMax((19 + 26 * n) * narrowing, MIN_CHANNEL + 1, 16), 38, 16);
+    let halfWidth = START_HALF_WIDTH + (generated - START_HALF_WIDTH) * t;
+
+    const bridgeY = Math.round(y / SECTION_LEN) * SECTION_LEN;
+    const neck = 1 - smoothstep(0, BRIDGE_NECK, Math.abs(y - bridgeY));
+    halfWidth += (BRIDGE_HALF_WIDTH - halfWidth) * neck;
 
     let islandHalf = 0;
     if (halfWidth > ISLAND_THRESHOLD) {
