@@ -141,6 +141,16 @@ body {
   opacity: 0.7;
 }
 
+.hud-muted {
+  position: absolute;
+  right: 32px;
+  bottom: 28px;
+}
+
+.hud-muted[hidden] {
+  display: none;
+}
+
 @keyframes pulse {
   50% {
     opacity: 0.45;

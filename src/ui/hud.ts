@@ -3,6 +3,11 @@ import { LOW_FUEL } from '../game/tuning';
 
 const HI_SCORE_KEY = 'river.hiscore';
 
+export interface HudStatus {
+  loading: boolean;
+  muted: boolean;
+}
+
 /** DOM overlay: score, sector, lives, fuel gauge and centre-screen messages. */
 export class Hud {
   private readonly score: HTMLElement;
@@ -13,6 +18,7 @@ export class Hud {
   private readonly fuelFill: HTMLElement;
   private readonly message: HTMLElement;
   private readonly sub: HTMLElement;
+  private readonly muted: HTMLElement;
   private hi = Number(localStorage.getItem(HI_SCORE_KEY)) || 0;
   private shownLives = -1;
 
@@ -33,6 +39,7 @@ export class Hud {
         <div class="hud-message" data-message></div>
         <div class="hud-sub" data-sub></div>
       </div>
+      <div class="hud-muted label" data-muted>SOUND OFF · M</div>
     `;
     const q = (sel: string) => root.querySelector<HTMLElement>(sel)!;
     this.score = q('[data-score]');
@@ -43,9 +50,10 @@ export class Hud {
     this.fuelFill = q('[data-fuel]');
     this.message = q('[data-message]');
     this.sub = q('[data-sub]');
+    this.muted = q('[data-muted]');
   }
 
-  update(game: Game): void {
+  update(game: Game, status: HudStatus): void {
     if (game.score > this.hi) {
       this.hi = game.score;
       localStorage.setItem(HI_SCORE_KEY, String(this.hi));
@@ -63,7 +71,8 @@ export class Hud {
     this.fuelBox.classList.toggle('low', game.fuel < LOW_FUEL && game.phase === 'playing');
     this.fuelBox.classList.toggle('refuel', game.refueling);
 
-    const [message, sub] = messages(game);
+    this.muted.hidden = !status.muted;
+    const [message, sub] = status.loading ? ['LOADING', ''] : messages(game);
     setText(this.message, message);
     setText(this.sub, sub);
   }
@@ -73,7 +82,7 @@ function messages(game: Game): [string, string] {
   switch (game.phase) {
     case 'ready':
       return game.score === 0 && game.checkpoint === 0
-        ? ['PRESS SPACE TO LAUNCH', 'ARROWS / WASD TO FLY · SPACE TO FIRE']
+        ? ['PRESS SPACE TO LAUNCH', 'ARROWS / WASD TO FLY · SPACE TO FIRE · M SOUND']
         : ['PRESS SPACE TO CONTINUE', `${game.lives} ${game.lives === 1 ? 'LIFE' : 'LIVES'} LEFT`];
     case 'crashed':
       return ['SIGNAL LOST', ''];
