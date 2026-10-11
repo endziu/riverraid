@@ -1,0 +1,90 @@
+:root {
+  --neon: #6fe3ff;
+  --neon-dim: rgba(111, 227, 255, 0.45);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+#game {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  font-family: 'Orbitron', system-ui, sans-serif;
+  color: var(--neon);
+  text-shadow: 0 0 8px var(--neon-dim);
+}
+
+.hud-top {
+  display: flex;
+  justify-content: space-between;
+  padding: 24px 32px;
+}
+
+.hud-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.label {
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  opacity: 0.7;
+}
+
+.value {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.bar {
+  width: 140px;
+  height: 6px;
+  border: 1px solid var(--neon-dim);
+  box-shadow: 0 0 8px var(--neon-dim);
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--neon);
+  box-shadow: 0 0 10px var(--neon);
+  transform-origin: left;
+  transition: transform 80ms linear;
+}
+
+.hud-message {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 42%;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0.35em;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
