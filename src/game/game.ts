@@ -41,7 +41,7 @@ export type GameEvent =
   | { type: 'launch' }
   | { type: 'shot'; x: number; y: number }
   | { type: 'impact'; x: number; y: number }
-  | { type: 'destroyed'; kind: EntityKind; x: number; y: number; points: number }
+  | { type: 'destroyed'; id: number; kind: EntityKind; x: number; y: number; points: number }
   | { type: 'crash'; x: number; y: number; cause: CrashCause }
   | { type: 'refuelStart' }
   | { type: 'refuelStop' }
@@ -215,7 +215,7 @@ export class Game {
 
   private destroy(e: Entity, points: number): void {
     this.entities.splice(this.entities.indexOf(e), 1);
-    this.events.push({ type: 'destroyed', kind: e.kind, x: e.x, y: e.y, points });
+    this.events.push({ type: 'destroyed', id: e.id, kind: e.kind, x: e.x, y: e.y, points });
     if (e.kind === 'bridge') this.checkpoint = Math.round(e.y / SECTION_LEN);
     this.addScore(points);
   }

@@ -1,6 +1,13 @@
 import * as THREE from 'three';
 import { BANK_HEIGHT, River, SECTION_LEN, type RiverSlice } from '../world/river';
-import { bankEdgeMaterial, landTopMaterial, roadMaterial, wallMaterial, waterlineMaterial } from './materials';
+import {
+  bankEdgeMaterial,
+  landTopMaterial,
+  roadLightMaterial,
+  roadMaterial,
+  wallMaterial,
+  waterlineMaterial,
+} from './materials';
 
 const CHUNK_LEN = 64;
 const ROW_STEP = 2;
@@ -12,6 +19,9 @@ const EDGE_WIDTH = 0.3;
 const WATERLINE_HEIGHT = 0.35;
 const ROAD_HALF_WIDTH = 1.6;
 const ROAD_LINE = 0.25;
+const LAMP_SPACING = 3;
+const LAMP_RUN = 90;
+const LAMP_HALF = 0.28;
 
 type Vec3 = readonly [number, number, number];
 
@@ -32,6 +42,29 @@ class StripBuilder {
   build(): THREE.BufferGeometry {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
+    g.setIndex(this.idx);
+    return g;
+  }
+}
+
+/** Flat square lamps lying on the land, each tagged with a phase for the chase pulse. */
+class LampBuilder {
+  private pos: number[] = [];
+  private phase: number[] = [];
+  private idx: number[] = [];
+
+  add(x: number, y: number, z: number, phase: number): void {
+    const v = this.pos.length / 3;
+    const h = LAMP_HALF;
+    this.pos.push(x - h, y, z - h, x + h, y, z - h, x - h, y, z + h, x + h, y, z + h);
+    this.phase.push(phase, phase, phase, phase);
+    this.idx.push(v, v + 1, v + 2, v + 1, v + 3, v + 2);
+  }
+
+  build(): THREE.BufferGeometry {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
+    g.setAttribute('aPhase', new THREE.Float32BufferAttribute(this.phase, 1));
     g.setIndex(this.idx);
     return g;
   }
@@ -90,8 +123,9 @@ function buildChunk(river: River, index: number): THREE.Group {
   waterline.add(ROWS, (i) => [IL(rows[i]) - lift, 0, rows[i].z], (i) => [IL(rows[i]) - lift, wl(rows[i]), rows[i].z]);
   waterline.add(ROWS, (i) => [IR(rows[i]) + lift, 0, rows[i].z], (i) => [IR(rows[i]) + lift, wl(rows[i]), rows[i].z]);
 
-  // Glowing road lines leading to each bridge.
+  // Glowing road lines leading to each bridge, edged with chasing lamps.
   const roads = new StripBuilder();
+  const lamps = new LampBuilder();
   const y0 = index * CHUNK_LEN;
   for (let by = Math.ceil(y0 / SECTION_LEN) * SECTION_LEN; by < y0 + CHUNK_LEN; by += SECTION_LEN) {
     if (by === 0) continue;
@@ -105,6 +139,14 @@ function buildChunk(river: River, index: number): THREE.Group {
         roads.add(2, (i) => [span[i], H + lift, z], (i) => [span[i], H + lift, z - ROAD_LINE]);
       }
     }
+    for (const side of [-1, 1]) {
+      const bank = s.center + side * s.halfWidth;
+      for (let d = 1.5; d < LAMP_RUN; d += LAMP_SPACING) {
+        for (const z of [-by - ROAD_HALF_WIDTH - 1, -by + ROAD_HALF_WIDTH + 1 - ROAD_LINE]) {
+          lamps.add(bank + side * d, H + lift * 2, z, d);
+        }
+      }
+    }
   }
 
   const group = new THREE.Group();
@@ -114,6 +156,7 @@ function buildChunk(river: River, index: number): THREE.Group {
     new THREE.Mesh(edges.build(), bankEdgeMaterial),
     new THREE.Mesh(waterline.build(), waterlineMaterial),
     new THREE.Mesh(roads.build(), roadMaterial),
+    new THREE.Mesh(lamps.build(), roadLightMaterial),
   );
   return group;
 }

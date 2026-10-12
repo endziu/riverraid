@@ -82,7 +82,7 @@ function messages(game: Game): [string, string] {
   switch (game.phase) {
     case 'ready':
       return game.score === 0 && game.checkpoint === 0
-        ? ['PRESS SPACE TO LAUNCH', 'ARROWS / WASD TO FLY · SPACE TO FIRE · M SOUND']
+        ? ['PRESS SPACE TO LAUNCH', 'ARROWS / WASD TO FLY · SPACE TO FIRE · M SOUND · Q QUALITY · C SCANLINES']
         : ['PRESS SPACE TO CONTINUE', `${game.lives} ${game.lives === 1 ? 'LIFE' : 'LIVES'} LEFT`];
     case 'crashed':
       return ['SIGNAL LOST', ''];

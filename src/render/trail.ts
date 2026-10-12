@@ -12,10 +12,13 @@ export class Trail {
   private readonly geometry = new THREE.BufferGeometry();
   private readonly color: THREE.Color;
   private readonly width: number;
+  /** Wakes spread out towards the tail instead of tapering. */
+  private readonly widen: boolean;
 
-  constructor(color: THREE.Color, width: number) {
+  constructor(color: THREE.Color, width: number, widen = false) {
     this.color = color;
     this.width = width;
+    this.widen = widen;
     this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3));
     this.geometry.setAttribute('color', new THREE.BufferAttribute(this.colors, 3));
     const idx: number[] = [];
@@ -44,6 +47,11 @@ export class Trail {
     this.geometry.setDrawRange(0, 0);
   }
 
+  dispose(): void {
+    this.geometry.dispose();
+    (this.mesh.material as THREE.Material).dispose();
+  }
+
   /** Move the head of the trail to `head` (world space). */
   update(head: THREE.Vector3): void {
     const pts = this.points;
@@ -65,7 +73,7 @@ export class Trail {
       dz /= len;
 
       const t = i / (MAX_POINTS - 1);
-      const half = (this.width * (1 - t)) / 2;
+      const half = (this.width * (this.widen ? 0.25 + 0.75 * Math.sqrt(t) : 1 - t)) / 2;
       const fade = Math.pow(1 - t, 1.5);
       const p = pts[i];
       const o = i * 6;

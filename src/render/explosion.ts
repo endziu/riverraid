@@ -56,8 +56,8 @@ class Explosion {
   }
 
   /** `power` ~1 for a normal explosion; smaller for sparks, larger for big blasts. */
-  spawn(at: THREE.Vector3, color: THREE.Color, power: number): void {
-    const count = Math.min(COUNT, Math.round(COUNT * Math.min(power, 1)));
+  spawn(at: THREE.Vector3, color: THREE.Color, power: number, density: number): void {
+    const count = Math.max(1, Math.min(COUNT, Math.round(COUNT * Math.min(power, 1) * density)));
     for (let i = 0; i < count; i++) {
       const dir = new THREE.Vector3().randomDirection();
       dir.y = Math.abs(dir.y) * 0.8 + 0.2;
@@ -100,6 +100,8 @@ export class Explosions {
   readonly group = new THREE.Group();
   private readonly pool = Array.from({ length: POOL_SIZE }, () => new Explosion());
   private next = 0;
+  /** Scales spark counts (quality preset). */
+  density = 1;
 
   constructor() {
     this.pool.forEach((e) => this.group.add(e.points));
@@ -110,7 +112,7 @@ export class Explosions {
   }
 
   spawn(at: THREE.Vector3, color: THREE.Color, power = 1): void {
-    this.pool[this.next++ % POOL_SIZE].spawn(at, color, power);
+    this.pool[this.next++ % POOL_SIZE].spawn(at, color, power, this.density);
   }
 
   update(dt: number): void {

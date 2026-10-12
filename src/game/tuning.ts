@@ -33,6 +33,10 @@ export const EXTRA_LIFE_EVERY = 10_000;
 
 // Flow
 export const CRASH_TIME = 1.6;
+/** Freeze after a crash or a bridge kill (about 3 frames at 60 Hz). */
+export const HIT_STOP = 0.05;
+/** Time scale at the start of the final crash; eases back to 1 as it plays out. */
+export const SLOWMO_SCALE = 0.25;
 export const GAME_OVER_DELAY = 1.0;
 /** Sections are generated this far ahead of the player. */
 export const SPAWN_AHEAD = 300;

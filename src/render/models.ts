@@ -1,7 +1,6 @@
 import * as THREE from 'three';
-import { BRIDGE_OVERHANG, type Entity, type EntityKind } from '../game/entities';
-import { BANK_HEIGHT } from '../world/river';
-import { barrierMaterial } from './materials';
+import type { Entity, EntityKind } from '../game/entities';
+import { bridgeModel } from './bridge';
 
 /** Glow colours; values above 1 feed the bloom pass. */
 export const COLORS = {
@@ -32,7 +31,7 @@ const hullMaterial = new THREE.MeshBasicMaterial({
 });
 
 const lineMaterials = new Map<THREE.Color, THREE.LineBasicMaterial>();
-function lineMaterial(color: THREE.Color): THREE.LineBasicMaterial {
+export function lineMaterial(color: THREE.Color): THREE.LineBasicMaterial {
   let m = lineMaterials.get(color);
   if (!m) {
     m = new THREE.LineBasicMaterial({ color, toneMapped: false });
@@ -42,7 +41,7 @@ function lineMaterial(color: THREE.Color): THREE.LineBasicMaterial {
 }
 
 const glowMaterials = new Map<THREE.Color, THREE.MeshBasicMaterial>();
-function glowMaterial(color: THREE.Color): THREE.MeshBasicMaterial {
+export function glowMaterial(color: THREE.Color): THREE.MeshBasicMaterial {
   let m = glowMaterials.get(color);
   if (!m) {
     m = new THREE.MeshBasicMaterial({ color: color.clone(), toneMapped: false });
@@ -52,7 +51,7 @@ function glowMaterial(color: THREE.Color): THREE.MeshBasicMaterial {
 }
 
 /** Dark solid with glowing edges. */
-function glowSolid(geometry: THREE.BufferGeometry, color: THREE.Color): THREE.Group {
+export function glowSolid(geometry: THREE.BufferGeometry, color: THREE.Color): THREE.Group {
   const g = new THREE.Group();
   g.add(new THREE.Mesh(geometry, hullMaterial), new THREE.LineSegments(new THREE.EdgesGeometry(geometry), lineMaterial(color)));
   return g;
@@ -114,26 +113,6 @@ function fuelModel(): THREE.Object3D {
   return g;
 }
 
-const TOWER = 6;
-
-/** Bridges differ in width, so each is built individually (and disposed). */
-function bridgeModel(e: Entity): THREE.Object3D {
-  const halfWater = e.halfW - BRIDGE_OVERHANG;
-  const width = e.halfW * 2;
-  const g = new THREE.Group();
-  g.add(
-    glowSolid(new THREE.BoxGeometry(width, 0.6, 3).translate(0, BANK_HEIGHT, 0), COLORS.bridge),
-    glowSolid(new THREE.BoxGeometry(width, 0.4, 0.6).translate(0, BANK_HEIGHT + TOWER, 0), COLORS.bridge),
-  );
-  for (const side of [-1, 1]) {
-    g.add(glowSolid(new THREE.BoxGeometry(0.8, TOWER, 0.8).translate(side * (halfWater + 1), BANK_HEIGHT + TOWER / 2, 0), COLORS.bridge));
-  }
-  const barrierHeight = BANK_HEIGHT + TOWER;
-  g.add(new THREE.Mesh(new THREE.PlaneGeometry(halfWater * 2, barrierHeight).translate(0, barrierHeight / 2, 0), barrierMaterial));
-  g.userData.disposable = true;
-  return g;
-}
-
 const templates: Partial<Record<Exclude<EntityKind, 'bridge'>, THREE.Object3D>> = {};
 const builders = { ship: shipModel, heli: heliModel, jet: jetModel, fuel: fuelModel };
 
@@ -147,5 +126,9 @@ export function disposeModel(obj: THREE.Object3D): void {
   if (!obj.userData.disposable) return;
   obj.traverse((o) => {
     if (o instanceof THREE.Mesh || o instanceof THREE.LineSegments) o.geometry.dispose();
+    if (o instanceof THREE.Mesh && o.userData.ownsMaterial) {
+      o.material.map?.dispose();
+      o.material.dispose();
+    }
   });
 }

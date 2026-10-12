@@ -23,13 +23,18 @@ body {
   display: block;
 }
 
-#hud {
+#hud,
+#overlay {
   position: fixed;
   inset: 0;
   pointer-events: none;
   font-family: 'Orbitron', system-ui, sans-serif;
   color: var(--neon);
   text-shadow: 0 0 8px var(--neon-dim);
+}
+
+#overlay {
+  overflow: hidden;
 }
 
 .hud-top {
@@ -149,6 +154,87 @@ body {
 
 .hud-muted[hidden] {
   display: none;
+}
+
+/* Score pop-ups, positioned each frame from world space. */
+.popup {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  /* A dark rim keeps the number readable over the explosion it sits on. */
+  -webkit-text-stroke: 5px rgba(0, 0, 0, 0.55);
+  paint-order: stroke fill;
+  color: #ffb36b;
+  text-shadow: 0 0 10px rgba(255, 140, 40, 0.8);
+  will-change: transform, opacity;
+}
+
+.popup.jet {
+  color: #ff7ab8;
+  text-shadow: 0 0 10px rgba(255, 40, 120, 0.8);
+}
+
+.popup.fuel {
+  color: #8dffa8;
+  text-shadow: 0 0 10px rgba(80, 255, 130, 0.8);
+}
+
+.popup.big {
+  font-size: 30px;
+  color: #ffd27a;
+  text-shadow: 0 0 16px rgba(255, 170, 40, 0.9);
+}
+
+.popup.life {
+  font-size: 22px;
+  color: #fff;
+  text-shadow: 0 0 14px var(--neon);
+}
+
+/* Incoming jet: an arrow at the screen edge it will cross from, pointing at it. */
+.jet-marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-top: 13px solid transparent;
+  border-bottom: 13px solid transparent;
+  filter: drop-shadow(0 0 8px #ff2a7a);
+  animation: blink var(--blink, 0.4s) steps(1) infinite;
+}
+
+.jet-marker.left {
+  border-right: 18px solid #ff4d94;
+}
+
+.jet-marker.right {
+  border-left: 18px solid #ff4d94;
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 64px;
+  transform: translateX(-50%);
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.toast.show {
+  opacity: 0.85;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.2;
+  }
 }
 
 @keyframes pulse {
