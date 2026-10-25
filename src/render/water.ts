@@ -31,18 +31,16 @@ const reflectiveShader = {
     varying vec4 vUv;
 
     vec3 reflection() {
-      vec2 ripple = vec2(
-        sin(vWorld.z * 0.45 + uTime * 2.3) + 0.5 * sin(vWorld.x * 0.7 - uTime * 1.7),
-        cos(vWorld.z * 0.31 - uTime * 1.9)
-      ) * 0.0035 * vUv.w;
-      // A short vertical smear reads as moving water under neon.
+      // Keep silhouettes steady; a small sideways shimmer suggests moving water.
+      float shimmer = sin(vWorld.z * 0.28 + uTime * 1.1) * 0.00055 * vUv.w;
+      // A tight vertical blur softens the mirrored lights without bending them.
       vec3 sum = vec3(0.0);
-      for (int i = -2; i <= 2; i++) {
+      for (int i = -1; i <= 1; i++) {
         vec4 uv = vUv;
-        uv.xy += ripple + vec2(0.0, float(i) * 0.004 * vUv.w);
-        sum += texture2DProj(tDiffuse, uv).rgb * (3.0 - abs(float(i)));
+        uv.xy += vec2(shimmer, float(i) * 0.0015 * vUv.w);
+        sum += texture2DProj(tDiffuse, uv).rgb * (2.0 - abs(float(i)));
       }
-      return sum / 9.0;
+      return sum / 4.0;
     }
 
     void main() {
